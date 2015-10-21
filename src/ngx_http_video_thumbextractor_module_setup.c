@@ -377,6 +377,13 @@ ngx_http_video_thumbextractor_init_worker(ngx_cycle_t *cycle)
         ngx_http_video_thumbextractor_module_child_pids[i] = -1;
     }
 
+    if ((ngx_http_video_thumbextractor_module_extract_queue = ngx_pcalloc(ngx_cycle->pool, sizeof(ngx_queue_t))) == NULL) {
+        ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0, "video thumb extractor module: unable to allocate memory to queue of extractions");
+        return NGX_ERROR;
+    }
+
+    ngx_queue_init(ngx_http_video_thumbextractor_module_extract_queue);
+
     ngx_http_video_thumbextractor_init_libraries();
     return NGX_OK;
 }

@@ -65,6 +65,33 @@ typedef struct {
 } ngx_http_video_thumbextractor_loc_conf_t;
 
 typedef struct {
+    int64_t                          size;
+    int64_t                          offset;
+    ngx_str_t                       *filename;
+    ngx_file_t                       file;
+} ngx_http_video_thumbextractor_file_info_t;
+
+typedef struct {
+    ngx_connection_t                            *conn;
+    caddr_t                                      data;
+    size_t                                       size;
+    ngx_buf_t                                    buffer;
+    ngx_int_t                                    rc;
+    ngx_uint_t                                   rc_transfered:1;
+    ngx_uint_t                                   size_transfered:1;
+} ngx_http_video_thumbextractor_transfer_t;
+
+typedef struct {
+    ngx_queue_t                                  queue;
+    ngx_http_video_thumbextractor_file_info_t    info;
+    ngx_http_request_t                          *request;
+    int                                          pipefd[2];
+    ngx_uint_t                                   slot;
+    ngx_connection_t                            *conn;
+    ngx_http_video_thumbextractor_transfer_t    *transfer;
+} ngx_http_video_thumbextractor_ipc_t;
+
+typedef struct {
     ngx_uint_t                              tile_sample_interval;
     ngx_uint_t                              tile_cols;
     ngx_uint_t                              tile_rows;
@@ -72,14 +99,8 @@ typedef struct {
     ngx_int_t                               width;
     ngx_int_t                               height;
     ngx_str_t                              *filename;
+    ngx_http_video_thumbextractor_ipc_t    *ipc_ctx;
 } ngx_http_video_thumbextractor_ctx_t;
-
-typedef struct {
-    int64_t                          size;
-    int64_t                          offset;
-    ngx_str_t                       *filename;
-    ngx_file_t                       file;
-} ngx_http_video_thumbextractor_file_info_t;
 
 ngx_int_t ngx_http_video_thumbextractor_access_handler(ngx_http_request_t *r);
 ngx_int_t ngx_http_video_thumbextractor_filter_init(ngx_conf_t *cf);

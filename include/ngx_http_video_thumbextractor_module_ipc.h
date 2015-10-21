@@ -26,6 +26,11 @@
 #ifndef NGX_HTTP_VIDEO_THUMBEXTRACTOR_MODULE_IPC_H_
 #define NGX_HTTP_VIDEO_THUMBEXTRACTOR_MODULE_IPC_H_
 
+#include <ngx_http_video_thumbextractor_module.h>
+
 ngx_int_t       ngx_http_video_thumbextractor_module_child_pids[NGX_MAX_PROCESSES];
+ngx_queue_t    *ngx_http_video_thumbextractor_module_extract_queue;
+
+void            ngx_http_video_thumbextractor_module_ensure_extractor_process(ngx_http_video_thumbextractor_main_conf_t *vtmcf);
 
 #endif /* NGX_HTTP_VIDEO_THUMBEXTRACTOR_MODULE_IPC_H_ */

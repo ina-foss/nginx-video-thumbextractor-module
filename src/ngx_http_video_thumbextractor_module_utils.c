@@ -104,7 +104,7 @@ ngx_http_video_thumbextractor_get_thumb(ngx_http_video_thumbextractor_loc_conf_t
     AVFilterContext *buffersrc_ctx;
     AVFilterGraph   *filter_graph = NULL;
     int              need_flush = 0;
-    int64_t          second = ctx->second;
+    int64_t          second = ctx->second>0 ? 0 : ctx->second*AV_TIME_BASE;
     char             value[10];
 
     ngx_memzero(&info->file, sizeof(ngx_file_t));
@@ -157,7 +157,7 @@ ngx_http_video_thumbextractor_get_thumb(ngx_http_video_thumbextractor_loc_conf_t
         goto exit;
     }
 
-    if ((pFormatCtx->duration > 0) && ((((float_t) pFormatCtx->duration / AV_TIME_BASE) - second)) < 0.1) {
+    if ((pFormatCtx->duration > 0) && (pFormatCtx->duration - second) < 0.1) {
         ngx_log_error(NGX_LOG_WARN, log, 0, "video thumb extractor module: seconds greater than duration");
         rc = NGX_HTTP_VIDEO_THUMBEXTRACTOR_SECOND_NOT_FOUND;
         goto exit;
@@ -396,27 +396,27 @@ int display_width(AVCodecContext *pCodecCtx)
 
 int setup_parameters(ngx_http_video_thumbextractor_loc_conf_t *cf, ngx_http_video_thumbextractor_ctx_t *ctx, AVFormatContext *pFormatCtx, AVCodecContext *pCodecCtx)
 {
-    int64_t remainingTime = ((pFormatCtx->duration / AV_TIME_BASE) - ctx->second);
+    int64_t remainingTime = (pFormatCtx->duration  - ctx->second * AV_TIME_BASE);
 
     ctx->tile_sample_interval = cf->tile_sample_interval;
     ctx->tile_rows = cf->tile_rows;
     ctx->tile_cols = cf->tile_cols;
 
     if (ctx->tile_sample_interval == NGX_CONF_UNSET_UINT) {
-        ctx->tile_sample_interval = 5;
+        ctx->tile_sample_interval = 5 * AV_TIME_BASE;
     }
 
     if ((cf->tile_rows != NGX_CONF_UNSET_UINT) && (cf->tile_cols != NGX_CONF_UNSET_UINT)) {
         if (cf->tile_sample_interval == NGX_CONF_UNSET_UINT) {
-            ctx->tile_sample_interval = (pFormatCtx->duration > 0) ? (remainingTime / (ctx->tile_rows * ctx->tile_cols)) + 1 : 5;
+            ctx->tile_sample_interval = (pFormatCtx->duration > 0) ? (remainingTime / (ctx->tile_rows * ctx->tile_cols)) : 5* AV_TIME_BASE;
         }
     } else if (cf->tile_rows != NGX_CONF_UNSET_UINT) {
-        ctx->tile_cols = (pFormatCtx->duration > 0) ? (remainingTime / (ctx->tile_rows * ctx->tile_sample_interval)) + 1 : 1;
+        ctx->tile_cols = (pFormatCtx->duration > 0) ? (remainingTime / (ctx->tile_rows * ctx->tile_sample_interval)) : 1* AV_TIME_BASE;
         if (cf->tile_max_cols != NGX_CONF_UNSET_UINT) {
             ctx->tile_cols = ngx_min(ctx->tile_cols, cf->tile_max_cols);
         }
     } else if (cf->tile_cols != NGX_CONF_UNSET_UINT) {
-        ctx->tile_rows = (pFormatCtx->duration > 0) ? (remainingTime / (ctx->tile_cols * ctx->tile_sample_interval)) + 1 : 1;
+        ctx->tile_rows = (pFormatCtx->duration > 0) ? (remainingTime / (ctx->tile_cols * ctx->tile_sample_interval)) : 1* AV_TIME_BASE;
         if (cf->tile_max_rows != NGX_CONF_UNSET_UINT) {
             ctx->tile_rows = ngx_min(ctx->tile_rows, cf->tile_max_rows);
         }
@@ -617,9 +617,9 @@ int get_frame(ngx_http_video_thumbextractor_loc_conf_t *cf, AVFormatContext *pFo
     int      frameFinished = 0;
     int      rc;
 
-    int64_t second_on_stream_time_base = second * pFormatCtx->streams[videoStream]->time_base.den / pFormatCtx->streams[videoStream]->time_base.num;
+    int64_t second_on_stream_time_base = second / AV_TIME_BASE * pFormatCtx->streams[videoStream]->time_base.den / pFormatCtx->streams[videoStream]->time_base.num;
 
-    if ((pFormatCtx->duration > 0) && ((((float_t) pFormatCtx->duration / AV_TIME_BASE) - second)) < 0.1) {
+    if ((pFormatCtx->duration > 0) && ( pFormatCtx->duration - second) < 0.1) {
         return NGX_HTTP_VIDEO_THUMBEXTRACTOR_SECOND_NOT_FOUND;
     }
 
